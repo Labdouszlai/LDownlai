@@ -1,21 +1,39 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-import os
-import sys
-from PyInstaller.utils.win32 import versioninfo
-
 block_cipher = None
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('app.ico', '.'), ('bin/ffmpeg.exe', 'bin')],
+    datas=[],
     hiddenimports=['html'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        'PIL', 'Pillow', 'Image', 'ImageTk',
+        'tkinter.test', 'test',
+        'distutils', 'setuptools',
+        'lib2to3', 'multiprocessing', 'concurrent',
+        'http.server', 'http.cookies',
+        'email', 'pydoc',
+        'unittest', 'doctest',
+        'pickle', 'dbm', 'sqlite3',
+        'turtle', 'audiodev',
+        'tcl8', 'tk8',
+        'xml.dom', 'xml.sax', 'xml.parsers',
+        'json.tool',
+        'zipfile', 'tarfile',
+        'bz2', 'lzma',
+        'webbrowser',
+        'msvcrt',
+        'crypt',
+        'symtable',
+        'tabnanny',
+        'profile', 'pstats',
+        'this', 'antigravity',
+    ],
     noarchive=False,
     optimize=2,
 )
@@ -31,7 +49,7 @@ exe = EXE(
     name='LDownlai',
     debug=False,
     bootloader_ignore_signals=False,
-    strip=False,
+    strip=True,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,

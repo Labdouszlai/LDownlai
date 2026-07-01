@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 venv/
+venv-x86/
 build/
 dist/
 bin/*.upx

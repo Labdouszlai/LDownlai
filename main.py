@@ -4,10 +4,7 @@ import threading
 import os
 import re
 import sys
-import urllib.request
-import io
 import yt_dlp
-from PIL import Image, ImageTk
 
 __appname__ = "LDownlai"
 __version__ = "1.0.0"
@@ -65,15 +62,14 @@ class App:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title(__appname__)
-        self.root.geometry("580x540+500+200")
-        self.root.minsize(540, 500)
+        self.root.geometry("580x520+500+200")
+        self.root.minsize(540, 480)
         self.root.configure(bg=BG)
-        self.root.iconbitmap(default=ICON) if os.path.exists(ICON) else None
+        if os.path.exists(ICON):
+            self.root.iconbitmap(default=ICON)
 
         self.busy = False
         self.cancel_flag = False
-        self.preview_data = None
-        self.thumb_img = None
 
         self._setup_style()
         self._build()
@@ -104,8 +100,6 @@ class App:
         s.configure("Cancel.TButton", background=ERR, foreground=FG,
                      bordercolor=ERR)
         s.map("Cancel.TButton", background=[("active", "#da3633")])
-        s.configure("Success.TButton", background=GREEN, foreground=BG)
-        s.map("Success.TButton", background=[("active", "#56d364")])
         s.configure("Horizontal.TProgressbar", background=ACCENT,
                      troughcolor=BG3, bordercolor=BORDER)
         s.configure("Card.TFrame", background=BG2, bordercolor=BORDER,
@@ -119,14 +113,12 @@ class App:
         m = ttk.Frame(self.root)
         m.pack(fill="both", expand=True, padx=16, pady=(12, 14))
 
-        # Header
         hdr = ttk.Frame(m)
         hdr.pack(fill="x", pady=(0, 12))
         ttk.Label(hdr, text=__appname__, style="Header.TLabel").pack(side="left")
         ttk.Label(hdr, text=f"v{__version__}  by {__author__}",
                   style="Sub.TLabel").pack(side="right")
 
-        # URL input
         url_frame = ttk.Frame(m)
         url_frame.pack(fill="x", pady=(0, 10))
         self.url_var = tk.StringVar()
@@ -139,7 +131,6 @@ class App:
                                width=6)
         paste_btn.pack(side="right", padx=(8, 0))
 
-        # Format / Quality
         opt_frame = ttk.Frame(m)
         opt_frame.pack(fill="x", pady=(0, 10))
         self.fmt_var = tk.StringVar(value="MP4")
@@ -156,19 +147,14 @@ class App:
         self.qcombo.pack(side="left")
         self._swap()
 
-        # Preview area
         pv = ttk.Frame(m, style="Card.TFrame")
         pv.pack(fill="x", pady=(0, 10), ipadx=8, ipady=8)
-        self.thumb_label = ttk.Label(pv, text="", anchor="center",
-                                     background=BG2)
         self.info_var = tk.StringVar(value="")
         self.info_label = ttk.Label(pv, textvariable=self.info_var,
                                     style="Small.TLabel", background=BG2,
-                                    wraplength=500)
-        self.thumb_label.pack(fill="x", padx=4, pady=(4, 0))
-        self.info_label.pack(anchor="w", padx=4, pady=(4, 4))
+                                    wraplength=500, justify="left")
+        self.info_label.pack(anchor="w", padx=4, pady=4)
 
-        # Action buttons
         btn_frame = ttk.Frame(m)
         btn_frame.pack(fill="x", pady=(0, 10))
         btn_inner = ttk.Frame(btn_frame)
@@ -185,21 +171,18 @@ class App:
                                command=self._cancel, width=8, state="disabled")
         self.cbtn.pack(side="left")
 
-        # Output directory
         self.out = os.path.join(os.path.expanduser("~"), "Downloads")
         self.out_btn = ttk.Button(
             m, text=f"Save to: ...\\{os.path.basename(self.out)}",
             command=self._pick)
         self.out_btn.pack(fill="x", pady=(0, 8))
 
-        # Progress
         self.pbar = ttk.Progressbar(m, mode="determinate")
         self.pbar.pack(fill="x", pady=(0, 6))
         self.stat_var = tk.StringVar(value="Ready")
         ttk.Label(m, textvariable=self.stat_var, style="Small.TLabel").pack(
             anchor="w")
-        ttk.Label(m,
-                  text="yt-dlp + ffmpeg",
+        ttk.Label(m, text="yt-dlp + ffmpeg",
                   foreground="#444", font=("Segoe UI", 7)).pack(
             side="bottom", anchor="e", pady=(4, 0))
 
@@ -234,14 +217,11 @@ class App:
             if info.get("_type") == "playlist":
                 entries = info.get("entries", [])
                 if entries:
-                    first = entries[0]
                     title = info.get("title", "Playlist")
                     count = info.get("playlist_count", len(entries))
                     text = f"Playlist: {title}\n{count} videos"
-                    thumb_url = first.get("thumbnail") if first else None
                 else:
                     text = "Empty playlist"
-                    thumb_url = None
             else:
                 title = info.get("title", "")
                 duration = info.get("duration", 0)
@@ -251,43 +231,15 @@ class App:
                 text = f"{title}\n{channel}"
                 if dur_str:
                     text += f"  |  {dur_str}"
-                thumb_url = info.get("thumbnail")
-            self.root.after(0, lambda t=text, th=thumb_url:
-                            self._show_preview(t, th))
+            self.root.after(0, lambda t=text: self._show_preview(t))
         except Exception:
-            self.root.after(0, lambda: self._show_preview("", None))
+            self.root.after(0, lambda: self._show_preview(""))
 
-    def _show_preview(self, text, thumb_url):
+    def _show_preview(self, text):
         if text:
             self.info_var.set(text)
-            if thumb_url:
-                thread = threading.Thread(target=self._load_thumb,
-                                          args=(thumb_url,), daemon=True)
-                thread.start()
         else:
             self.info_var.set("")
-            self.thumb_label.configure(image="")
-            self.thumb_img = None
-
-    def _load_thumb(self, url):
-        try:
-            req = urllib.request.Request(
-                url, headers={"User-Agent": "Mozilla/5.0"})
-            data = urllib.request.urlopen(req, timeout=10).read()
-            img = Image.open(io.BytesIO(data))
-            w, h = img.size
-            if w > 240:
-                h = int(h * 240 / w)
-                w = 240
-            img = img.resize((w, h), Image.LANCZOS)
-            tk_img = ImageTk.PhotoImage(img)
-            self.root.after(0, lambda: self._set_thumb(tk_img))
-        except Exception:
-            pass
-
-    def _set_thumb(self, img):
-        self.thumb_img = img
-        self.thumb_label.configure(image=img)
 
     def _swap(self):
         if self.fmt_var.get() == "MP4":
