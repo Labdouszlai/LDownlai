@@ -2,37 +2,24 @@
 
 block_cipher = None
 
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+
+_ejs_hidden = collect_submodules('yt_dlp_ejs')
+_ejs_datas = collect_data_files('yt_dlp_ejs')
+
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
-    hiddenimports=['html'],
+    datas=_ejs_datas,
+    hiddenimports=['html'] + _ejs_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
         'PIL', 'Pillow', 'Image', 'ImageTk',
         'tkinter.test', 'test',
-        'distutils', 'setuptools',
-        'lib2to3', 'multiprocessing', 'concurrent',
-        'http.server', 'http.cookies',
-        'email', 'pydoc',
-        'unittest', 'doctest',
-        'pickle', 'dbm', 'sqlite3',
         'turtle', 'audiodev',
-        'tcl8', 'tk8',
-        'xml.dom', 'xml.sax', 'xml.parsers',
-        'json.tool',
-        'zipfile', 'tarfile',
-        'bz2', 'lzma',
-        'webbrowser',
-        'msvcrt',
-        'crypt',
-        'symtable',
-        'tabnanny',
-        'profile', 'pstats',
-        'this', 'antigravity',
     ],
     noarchive=False,
     optimize=2,

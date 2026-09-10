@@ -16,8 +16,9 @@ A lightweight YouTube downloader built with Python and yt-dlp. Elegant dark UI, 
 ## Requirements
 
 - Python 3.10+
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp)
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) + [yt-dlp-ejs](https://github.com/yt-dlp/ejs)
 - [ffmpeg](https://ffmpeg.org/) (bundled in release)
+- A JavaScript runtime: [Deno](https://deno.com) (bundled in release) or Node.js 22+ — required by yt-dlp to solve YouTube's JS challenges since 2026
 
 ## Quick Start
 
@@ -42,7 +43,7 @@ LDownlai/
 ├── main.py              # Application entry point
 ├── LDownlai.spec        # PyInstaller build spec
 ├── app.ico              # Application icon
-├── bin/                 # Bundled binaries (ffmpeg)
+├── bin/                 # Bundled binaries (ffmpeg, deno)
 ├── requirements.txt     # Python dependencies
 └── README.md
 ```

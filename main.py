@@ -3,11 +3,12 @@ from tkinter import ttk, filedialog, messagebox
 import threading
 import os
 import re
+import shutil
 import sys
 import yt_dlp
 
 __appname__ = "LDownlai"
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __author__ = "L'Abdouszlai"
 __copyright__ = f"Copyright (c) 2026 {__author__}"
 
@@ -27,6 +28,43 @@ if not os.path.exists(FFMPEG):
 ICON = os.path.join(BASE, "app.ico")
 if not os.path.exists(ICON):
     ICON = os.path.join(MEI, "app.ico")
+
+
+def _find_js_runtime():
+    for name in ("deno", "node"):
+        exe = name + (".exe" if os.name == "nt" else "")
+        for base in (BASE, MEI):
+            p = os.path.join(base, "bin", exe)
+            if os.path.isfile(p):
+                return name, p
+        w = shutil.which(name)
+        if w:
+            return name, w
+    if os.name == "nt":
+        candidates = (
+            r"C:\Program Files\nodejs\node.exe",
+            os.path.expandvars(r"%ProgramFiles%\nodejs\node.exe"),
+            os.path.expandvars(r"%ProgramW6432%\nodejs\node.exe"),
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\nodejs\node.exe"),
+        )
+        for p in candidates:
+            if os.path.isfile(p):
+                return "node", p
+    return None, None
+
+
+JS_RUNTIME_NAME, JS_RUNTIME_PATH = _find_js_runtime()
+
+YT_CLIENTS = ["web_embedded", "mweb"]
+
+YTDLP_JS_OPTS = {}
+if JS_RUNTIME_NAME:
+    cfg = {"path": JS_RUNTIME_PATH} if JS_RUNTIME_PATH else {}
+    YTDLP_JS_OPTS["js_runtimes"] = {JS_RUNTIME_NAME: cfg}
+    YTDLP_JS_OPTS["remote_components"] = ["ejs:github"]
+YTDLP_JS_OPTS["extractor_args"] = {
+    "youtube": {"player_client": YT_CLIENTS},
+}
 
 BG = "#0d1117"
 BG2 = "#161b22"
@@ -211,6 +249,7 @@ class App:
             "extract_flat": False,
             "skip_download": True,
         }
+        opts.update(YTDLP_JS_OPTS)
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
@@ -335,6 +374,7 @@ class App:
             "restrictfilenames": True,
             "updatetime": False,
         }
+        opts.update(YTDLP_JS_OPTS)
         if FFMPEG and os.path.exists(FFMPEG):
             opts["ffmpeg_location"] = FFMPEG
         if is_playlist:
